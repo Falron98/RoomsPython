@@ -126,7 +126,7 @@ def show_room(obj, room_id):
             for i in rating:
                 if i[0] == user_login:
                     users_ratings.append([db.find_in_db('users', 'user_id', user_login)[1], i[2]])
-        df = pd.DataFrame(users_ratings, columns=['User', 'Rating'])
+        df = pd.DataFrame(users_ratings, columns=['User', 'Rating of Topic'])
         print(df)
     else:
         print("You are not in this room")
