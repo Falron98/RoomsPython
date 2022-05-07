@@ -64,7 +64,7 @@ class Database:
     def find_all_in_db(self, table_name, *values):
         con = self.open_connection()
         cur = con.cursor()
-        cur.execute("SELECT * FROM " + table_name + " " + ', '.join(values))
+        cur.execute("SELECT * FROM " + table_name + " " + ' '.join(values))
         record = cur.fetchall()
         if self._match(record):
             return record

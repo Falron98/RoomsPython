@@ -39,6 +39,8 @@ def join_room(db: Database, user_id: str, id: str, password: str) -> bool:
         return False
     if not bcrypt.checkpw(password.encode('utf-8'), room.password.encode('utf-8')):
         return False
+    if user_id in room.joined_users:
+        return False
     db.put_to_db('user_room', user_id=user_id, room_id=id)
     return True
 

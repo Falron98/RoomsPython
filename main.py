@@ -91,6 +91,28 @@ def list_rooms(obj, filter=None):
         elif filter in user_list:
             print(room.id, room.topic, room.topic_desc, sorted(user_list), room_owner[1])
 
+@login.command('show_room', help="Show existing room")
+@click.option('--room_id', required=True, help="Id of room you want to show")
+@click.pass_obj
+def show_room(obj, room_id):
+    db = obj['db']
+    user = obj['user']
+    room = rooms_service.get_room(db, room_id)
+    if user.user_id in room.joined_users:
+        user_list = []
+        room_owner = db.find_in_db('users', 'user_id', room.owner)
+        for username in room.joined_users:
+            user_name = db.find_in_db('users', 'user_id', username)
+            user_list.append(user_name[1])
+        print(room.id, room.topic, room.topic_desc, user_list, room_owner[1])
+        for user_login in room.joined_users:
+            rating = db.find_all_in_db('user_room', "WHERE room_id = ", str(room_id))
+            for i in rating:
+                if i[0] == user_login:
+                    print(db.find_in_db('users', 'user_id', user_login)[1], i[2])
+    else:
+        print("You are not in this room")
+
 
 @login.command('join_room', help="Join to existing room")
 @click.option('--room_id', help="Id of room you want to join")
@@ -100,7 +122,7 @@ def join_room(obj, room_id, password):
     db = obj['db']
     user = obj['user']
     if not rooms_service.join_room(db, user.user_id, room_id, password):
-        print("Wrong room id or password!")
+        print("Wrong room/password or you are already in this room")
 
 
 @login.command('change_topic', help="Change topic of room")
@@ -126,9 +148,9 @@ def remove_topic(obj, room_id):
 
 
 @login.command('rate_topic', help="Rate existing topic of the room")
-@click.option('--room_id', help="Id of room you want to rate")
-@click.option('--rate', help="Integer of how do you rate topic of the room (allowed ratings: 0, 0.5, 1, 2, 3, 5, 8, "
-                             "13, 20, 50, 100, 200, -1, -2")
+@click.option('--room_id', required=True, help="Id of room you want to rate")
+@click.option('--rate', required=True, help="Integer of how do you rate topic of the room (allowed ratings: 0, 0.5, "
+                                            "1, 2, 3, 5, 8, 13, 20, 50, 100, 200, -1, -2")
 @click.pass_obj
 def rate_topic(obj, room_id, rate):
     db = obj['db']
