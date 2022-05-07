@@ -77,9 +77,11 @@ def update_rating_of_room(db: Database, user: str, id: str, rating: str) -> bool
     room = get_room(db, id)
     if room is None:
         return False
-    if float(rating) not in RATING_RE:
+    elif float(rating) not in RATING_RE:
         return False
-    if user not in room.joined_users:
+    elif user not in room.joined_users:
+        return False
+    elif room.topic == 'None':
         return False
     db.update_to_db_2('user_room', 'topic_rating', 'room_id', 'user_id', rating, id, user)
     return True

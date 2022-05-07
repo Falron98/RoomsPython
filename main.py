@@ -184,7 +184,7 @@ def rate_topic(obj, room_id, rate):
     db = obj['db']
     user = obj['user']
     if not rooms_service.update_rating_of_room(db, user.user_id, room_id, rate):
-        print("You are not in the room or entered not allowed characters")
+        print("You are not in the room, entered not allowed rating or topic is not set")
 
 
 @run_application.command('register', help="Register new user")
