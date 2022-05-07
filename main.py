@@ -5,6 +5,7 @@ from database import database
 from rooms import rooms_service
 from users import users_service
 
+
 @click.group()
 @click.pass_context
 def run_application(ctx):
@@ -90,6 +91,7 @@ def list_rooms(obj, filter=None):
             print(room.id, room.topic, room.topic_desc, sorted(user_list), room_owner[1])
         elif filter in user_list:
             print(room.id, room.topic, room.topic_desc, sorted(user_list), room_owner[1])
+
 
 @login.command('show_room', help="Show existing room")
 @click.option('--room_id', required=True, help="Id of room you want to show")
