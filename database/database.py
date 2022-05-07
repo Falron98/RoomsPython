@@ -48,7 +48,7 @@ class Database:
     def remove_from_db(self, table_name, row_name, *values):
         con = self.open_connection()
         cur = con.cursor()
-        values_list = ', '.join(values)
+        values_list = ' '.join(values)
         cur.execute("DELETE FROM " + table_name + " WHERE " + row_name + " = '" + values_list + "'")
         con.commit()
 
@@ -135,12 +135,6 @@ class Database:
                 return False
 
         return True
-
-    def _get_reader(self, file):
-        return csv.reader(file, delimiter=",", quotechar="|")
-
-    def _get_writer(self, file):
-        return csv.writer(file, delimiter=",", quotechar="|", quoting=csv.QUOTE_MINIMAL)
 
 
 def get_db(path):

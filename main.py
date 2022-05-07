@@ -1,5 +1,6 @@
 import os
 import click
+import pandas as pd
 
 from database import database
 from rooms import rooms_service
@@ -19,13 +20,16 @@ def clear_db():
 
 
 @run_application.group('login', help="Login as existing user")
-@click.option("--login", required=True)
+@click.option("--login", required=True, help="Login of account you want to log in")
 @click.password_option()
 @click.pass_obj
 def login(obj, login, password):
     db = obj['db']
     user = users_service.login(db, login, password)
-    obj['user'] = user
+    if user is not None:
+        obj['user'] = user
+    else:
+        print("There is no such user")
 
 
 @login.command('remove_user', help="Remove user from database")
@@ -69,11 +73,14 @@ def delete_room(obj, room_id):
 @click.option('--filter', help="Filters users by given characters")
 @click.pass_obj
 def list_users(obj, filter=None):
+    users_list = []
     for user in users_service.get_all_users(obj['db']):
         if filter is None:
-            print(user.login)
+            users_list.append([user.user_id, user.login])
         elif user.login.find(filter) > -1:
-            print(user.login)
+            users_list.append([user.user_id, user.login])
+    df = pd.DataFrame(users_list, columns= ['ID', 'Login'])
+    print(df)
 
 
 @login.command('list_rooms', help="Shows all existing rooms in database")
@@ -81,6 +88,7 @@ def list_users(obj, filter=None):
 @click.pass_obj
 def list_rooms(obj, filter=None):
     db = obj['db']
+    rooms_list = []
     for room in rooms_service.get_all_rooms(db):
         user_list = []
         room_owner = db.find_in_db('users', 'user_id', room.owner)
@@ -88,9 +96,11 @@ def list_rooms(obj, filter=None):
             user_name = db.find_in_db('users', 'user_id', username)
             user_list.append(user_name[1])
         if filter is None:
-            print(room.id, room.topic, room.topic_desc, sorted(user_list), room_owner[1])
+            rooms_list.append([room.id, room.topic, room.topic_desc, sorted(user_list), room_owner[1]])
         elif filter in user_list:
-            print(room.id, room.topic, room.topic_desc, sorted(user_list), room_owner[1])
+            rooms_list.append([room.id, room.topic, room.topic_desc, sorted(user_list), room_owner[1]])
+    df = pd.DataFrame(rooms_list, columns=['ID', 'Topic', 'Description', 'Users in room', 'Owner'])
+    print(df)
 
 
 @login.command('show_room', help="Show existing room")
@@ -99,6 +109,8 @@ def list_rooms(obj, filter=None):
 def show_room(obj, room_id):
     db = obj['db']
     user = obj['user']
+    rooms_list = []
+    users_ratings = []
     room = rooms_service.get_room(db, room_id)
     if user.user_id in room.joined_users:
         user_list = []
@@ -106,12 +118,16 @@ def show_room(obj, room_id):
         for username in room.joined_users:
             user_name = db.find_in_db('users', 'user_id', username)
             user_list.append(user_name[1])
-        print(room.id, room.topic, room.topic_desc, user_list, room_owner[1])
+        rooms_list.append([room.id, room.topic, room.topic_desc, user_list, room_owner[1]])
+        df = pd.DataFrame(rooms_list, columns=['ID', 'Topic', 'Description', 'Users in room', 'Owner'])
+        print(df)
         for user_login in room.joined_users:
             rating = db.find_all_in_db('user_room', "WHERE room_id = ", str(room_id))
             for i in rating:
                 if i[0] == user_login:
-                    print(db.find_in_db('users', 'user_id', user_login)[1], i[2])
+                    users_ratings.append([db.find_in_db('users', 'user_id', user_login)[1], i[2]])
+        df = pd.DataFrame(users_ratings, columns=['User', 'Rating'])
+        print(df)
     else:
         print("You are not in this room")
 

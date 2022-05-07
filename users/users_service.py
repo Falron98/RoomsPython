@@ -44,7 +44,7 @@ def get_all_users(db: Database) -> List[User]:
     return [User(user_id=row[0], login=row[1]) for row in db.find_all_in_db('users')]
 
 
-def get_user(db: Database, login: str):
+def get_user(db: Database, login):
     db_user = db.find_in_db('users', 'login', login.lower())
     if db_user is None:
         return None
