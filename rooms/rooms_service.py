@@ -24,7 +24,8 @@ def get_room(db: Database, id: str):
     if db_room is None:
         return None
     return Room(id=db_room[0], owner=db_room[2], password=db_room[1], joined_users=get_all_joined_users(db, id),
-                topic=db.find_in_db('topics', 'room_id', db_room[0])[1], topic_desc=db.find_in_db('topics', 'room_id', db_room[0])[2])
+                topic=db.find_in_db('topics', 'room_id', db_room[0])[1],
+                topic_desc=db.find_in_db('topics', 'room_id', db_room[0])[2])
 
 
 def delete_room_by_id(db: Database, id: str):
@@ -42,6 +43,18 @@ def join_room(db: Database, user_id: str, id: str, password: str) -> bool:
     if user_id in room.joined_users:
         return False
     db.put_to_db('user_room', user_id=user_id, room_id=id)
+    return True
+
+
+def leave_room(db: Database, user_id: str, id: str) -> bool:
+    room = get_room(db, id)
+    if room is None:
+        return False
+    if user_id not in room.joined_users:
+        return False
+    if user_id is room.owner:
+        return False
+    db.remove_from_db2('user_room', 'room_id', 'user_id', id, user_id)
     return True
 
 
@@ -74,7 +87,8 @@ def update_rating_of_room(db: Database, user: str, id: str, rating: str) -> bool
 
 def get_all_rooms(db: Database) -> List[Room]:
     return [Room(id=row[0], owner=row[2], password=row[1], joined_users=get_all_joined_users(db, row[0]),
-                 topic=db.find_in_db('topics', 'room_id', row[0])[1], topic_desc=db.find_in_db('topics', 'room_id', row[0])[2]) for row in db.find_all_in_db('rooms')]
+                 topic=db.find_in_db('topics', 'room_id', row[0])[1],
+                 topic_desc=db.find_in_db('topics', 'room_id', row[0])[2]) for row in db.find_all_in_db('rooms')]
 
 
 def get_all_joined_users(db: Database, id: str):

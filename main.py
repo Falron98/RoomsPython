@@ -79,7 +79,7 @@ def list_users(obj, filter=None):
             users_list.append([user.user_id, user.login])
         elif user.login.find(filter) > -1:
             users_list.append([user.user_id, user.login])
-    df = pd.DataFrame(users_list, columns= ['ID', 'Login'])
+    df = pd.DataFrame(users_list, columns=['ID', 'Login'])
     print(df)
 
 
@@ -141,6 +141,16 @@ def join_room(obj, room_id, password):
     user = obj['user']
     if not rooms_service.join_room(db, user.user_id, room_id, password):
         print("Wrong room/password or you are already in this room")
+
+
+@login.command('leave_room', help="Leave room you are in")
+@click.option('--room_id', help="Id of room you want to leave")
+@click.pass_obj
+def leave_room(obj, room_id):
+    db = obj['db']
+    user = obj['user']
+    if not rooms_service.leave_room(db, user.user_id, room_id):
+        print("You are not in this room or such room doesn't exist")
 
 
 @login.command('change_topic', help="Change topic of room")

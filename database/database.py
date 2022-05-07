@@ -1,4 +1,3 @@
-import csv
 import os
 import sqlite3
 
@@ -50,6 +49,12 @@ class Database:
         cur = con.cursor()
         values_list = ' '.join(values)
         cur.execute("DELETE FROM " + table_name + " WHERE " + row_name + " = '" + values_list + "'")
+        con.commit()
+
+    def remove_from_db2(self, table_name, condition_name1, condition_name2, *values):
+        con = self.open_connection()
+        cur = con.cursor()
+        cur.execute("DELETE FROM " + table_name + " WHERE " + condition_name1 + " = ? AND " + condition_name2 + " = ?", values)
         con.commit()
 
     def find_in_db(self, table_name, search_row, *values):
