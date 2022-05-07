@@ -33,11 +33,11 @@ def login(obj, login, password):
 
 
 @login.command('remove_user', help="Remove user from database")
-@click.option("--username", required=True)
+@click.option("--user", required=True)
 @click.pass_obj
-def remove_user(obj, username):
+def remove_user(obj, user):
     db = obj['db']
-    users_service.remove_user(db, username)
+    users_service.remove_user(db, user)
 
 
 @login.command('create_room', help="Create new room")

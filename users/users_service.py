@@ -16,7 +16,7 @@ def validate_login(login: str):
     return re.match(LOGIN_RE, login) is not None
 
 
-def validate_password(password):
+def validate_password(password: str):
     return len(password) > 4
 
 
@@ -33,7 +33,7 @@ def login(db: Database, login: str, password: str):
     return User(user_id=user[0], login=user[1])
 
 
-def create_user(db: Database, login: str, password):
+def create_user(db: Database, login: str, password: str):
     salt = bcrypt.gensalt()
     password = bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
 
@@ -44,21 +44,22 @@ def get_all_users(db: Database) -> List[User]:
     return [User(user_id=row[0], login=row[1]) for row in db.find_all_in_db('users')]
 
 
-def get_user(db: Database, login):
+def get_user(db: Database, login: str):
     db_user = db.find_in_db('users', 'login', login.lower())
     if db_user is None:
         return None
     return User(user_id=db_user[0], login=db_user[1])
 
 
-def remove_user(db: Database, login):
+def remove_user(db: Database, login: str):
     if db.find_in_db('users', 'login', login.lower()) is not None:
         user = db.find_in_db('users', 'login', login.lower())
         room = db.find_in_db('rooms', 'owner_id', user[0])
+        if db.find_in_db('rooms', 'owner_id', user[0]) is not None:
+            db.remove_from_db('user_room', 'room_id', str(room[0]))
+            db.remove_from_db('rooms', 'owner_id', str(user[0]))
+        db.remove_from_db('user_room', 'user_id', str(user[0]))
         db.remove_from_db('users', 'login', login.lower())
-        db.remove_from_db('rooms', 'owner_id', user[0])
-        db.remove_from_db('user_room', 'user_id', user[0])
-        db.remove_from_db('user_room', 'room_id', room[0])
         print("User has been removed")
     else:
         print("There is no such user")
