@@ -124,5 +124,4 @@ def get_all_joined_users(db: Cursor, room_id: int):
     users_in_room = []
     for row in user_room_joined:
         users_in_room.append(row[1])
-    print(users_in_room)
     return users_in_room
