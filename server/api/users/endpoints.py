@@ -14,10 +14,13 @@ key = 'secret'
 
 
 class ListUsers(HTTPEndpoint):
-    @requires("authenticated", redirect='login')
-    async def post(self, request: Request):
+    @requires("authenticated")
+    async def get(self, request: Request):
+        user_list = []
         user = users.list_users(db)
-        return JSONResponse(content=f"{user}")
+        for name in user:
+            user_list.append({"username": name[1]})
+        return JSONResponse(content=user_list)
 
 
 class Register(HTTPEndpoint):
@@ -26,7 +29,7 @@ class Register(HTTPEndpoint):
             data = await request.json()
         except ValueError:
             return JSONResponse({"error": "wrong_data"}, status_code=400)
-        user_login = data['username']
+        user_login = data['login']
         password = data['password']
         user_data = users.register_user(db, user_login, password)
         if user_data == 'err_wrong_data':
@@ -43,14 +46,15 @@ class Login(HTTPEndpoint):
             data = await request.json()
         except ValueError:
             return JSONResponse({"error": "wrong_data"}, status_code=400)
-        user_login = data['username']
+        user_login = data['login']
         password = data['password']
         user_data = users.login(db, user_login, password)
         if user_data == 'err_wrong_credentials':
             return JSONResponse({}, status_code=401)
         else:
             payload = {"sub": user_data.user_id,
-                       "exp": datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(seconds=30)}
+                       "username": user_data.login,
+                       "exp": datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(seconds=3000)}
             token = jwt.encode(payload=payload,
                                key=key, algorithm='HS256')
             return JSONResponse({'token': token}, status_code=200)
@@ -60,6 +64,7 @@ class Refresh(HTTPEndpoint):
     @requires("authenticated")
     async def post(self, request: Request):
         payload = {"sub": request.user.sub,
+                   "username": request.user.username,
                    "exp": datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(minutes=15)}
         token = jwt.encode(payload=payload,
                            key=key, algorithm='HS256')

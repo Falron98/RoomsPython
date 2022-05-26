@@ -22,6 +22,7 @@ def initialize_db(db: sqlite3.Connection):
     cur.execute('''
                     CREATE TABLE rooms (
                         room_id integer PRIMARY KEY,
+                        name text NOT NULL,
                         password text NOT NULL,
                         owner_id integer NOT NULL,
                         topic_id integer,

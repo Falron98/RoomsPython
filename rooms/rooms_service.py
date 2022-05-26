@@ -8,11 +8,11 @@ from database.rooms_model import Room, Topic
 RATING_RE = [0, 0.5, 1, 2, 3, 5, 8, 13, 20, 50, 100, 200, -1, -2]
 
 
-def create_room(db: Cursor, owner_id: int, password: str):
+def create_room(db: Cursor, owner_id: int, name: str, password: str):
     salt = bcrypt.gensalt()
     hashed_psw = bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
 
-    out = db.execute("INSERT INTO rooms (owner_id, password) VALUES (?, ?) RETURNING room_id", (owner_id, hashed_psw)).fetchone()[0]
+    out = db.execute("INSERT INTO rooms (owner_id, name, password) VALUES (?, ?, ?) RETURNING room_id", (owner_id, name, hashed_psw)).fetchone()[0]
     if not join_room(db, owner_id, out, password):
         raise Exception("Owner could not join the room!")
     db.execute("INSERT INTO topics (room_id, topic, topic_dsc) VALUES (?, ?, ?)", (out, 'None', 'None'))
@@ -22,14 +22,14 @@ def get_room(db: Cursor, room_id: int):
     db_room = db.execute("SELECT * FROM rooms WHERE room_id = ?", (room_id,)).fetchone()
     if db_room is None:
         return None
-    return Room(id=db_room[0], owner=db_room[2], password=db_room[1])
+    return Room(id=db_room[0], name=db_room[1], password=db_room[2], owner=db_room[3])
 
 
-def get_room_by_owner(db: Cursor, owner_id: int):
-    db_room = db.execute("SELECT * FROM rooms WHERE owner_id = ?", (owner_id,)).fetchone()
+def get_room_by_name(db: Cursor, name: int):
+    db_room = db.execute("SELECT * FROM rooms WHERE name = ?", (name,)).fetchone()
     if db_room is None:
         return None
-    return Room(id=db_room[0], owner=db_room[2], password=db_room[1])
+    return Room(id=db_room[0], name=db_room[1], password=db_room[2], owner=db_room[3] )
 
 
 def delete_room_by_id(db: Cursor, room_id: int):
@@ -77,7 +77,7 @@ def leave_room(db: Cursor, user_id: int, room_id: int) -> bool:
     return True
 
 
-def update_room(db: Cursor, user_id: id, room_id: int, topic=None, desc=None) -> bool:
+def update_room(db: Cursor, user_id: id, room_id: int, topic=None, desc=None, password=None) -> bool:
     room = get_room(db, room_id)
     if room is None:
         return False
@@ -88,6 +88,10 @@ def update_room(db: Cursor, user_id: id, room_id: int, topic=None, desc=None) ->
         db.execute("UPDATE user_room SET topic_rating = ? WHERE room_id = ?", (None, room_id))
     if desc is not None:
         db.execute("UPDATE topics SET topic_dsc = ? WHERE room_id = ?", (desc, room_id))
+    if password is not None:
+        salt = bcrypt.gensalt()
+        hashed_psw = bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
+        db.execute("UPDATE rooms SET password = ? WHERE room_id = ?", (hashed_psw, room_id))
     return True
 
 
@@ -116,7 +120,7 @@ def get_rating(db: Cursor, user_id: int, room_id):
 
 
 def get_all_rooms(db: Cursor) -> List[Room]:
-    return [Room(id=row[0], owner=row[2], password=row[1]) for row in db.execute("SELECT * FROM rooms")]
+    return [Room(id=row[0], name=row[1], password=row[2], owner=row[3]) for row in db.execute("SELECT * FROM rooms")]
 
 
 def get_all_joined_users(db: Cursor, room_id: int):

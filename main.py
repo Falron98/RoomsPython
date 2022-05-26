@@ -1,6 +1,7 @@
 import click
 import pandas as pd
 
+import database.database
 import server
 from commands import db
 from commands import rooms
@@ -13,7 +14,7 @@ def run_application(ctx):
     ctx.obj = {'db': db.get_database()}
 
 
-@run_application.command('run_as_server')
+@run_application.command('run_as_server', help="Runs uvicorn server")
 def run_as_server():
     server.run()
 
@@ -22,7 +23,7 @@ def run_as_server():
 @click.pass_obj
 def clear_db(obj):
     db = obj['db']
-    db.clear_db(db)
+    database.database.initialize_db(db)
 
 
 @run_application.group('login', help="Login as existing user")
@@ -48,7 +49,8 @@ def remove_user(obj, user):
 def create_room(obj, password):
     db = obj['db']
     user = obj['user']
-    rooms.create_room(db, user, password)
+    name = input("Name of room: ")
+    rooms.create_room(db, user.user_id, name, password)
 
 
 @login.command('delete_room', help="Delete existing room from database")
@@ -57,7 +59,7 @@ def create_room(obj, password):
 def delete_room(obj, room_id):
     db = obj['db']
     user = obj['user']
-    rooms.delete_room(db, user, room_id)
+    rooms.delete_room(db, user.user_id, room_id)
 
 
 @login.command('list_users', help="Shows all existing users in database")
@@ -86,7 +88,7 @@ def list_rooms(obj, filter=None):
 def show_room(obj, room_id):
     db = obj['db']
     user = obj['user']
-    rooms_list = rooms.show_room(db, user, room_id)
+    rooms_list = rooms.show_room(db, user.user_id, room_id)
     if rooms_list is not None:
         df = pd.DataFrame(rooms_list, columns=['ID', 'Topic', 'Description', 'Users in room', 'Owner'])
         print(df)
@@ -102,7 +104,7 @@ def show_room(obj, room_id):
 def join_room(obj, room_id, password):
     db = obj['db']
     user = obj['user']
-    rooms.join_room(db, user, room_id, password)
+    rooms.join_room(db, user.user_id, room_id, password)
 
 
 @login.command('leave_room', help="Leave room you are in")
@@ -111,7 +113,7 @@ def join_room(obj, room_id, password):
 def leave_room(obj, room_id):
     db = obj['db']
     user = obj['user']
-    rooms.leave_room(db, user, room_id)
+    rooms.leave_room(db, user.user_id, room_id)
 
 
 @login.command('change_topic', help="Change topic of room")
@@ -122,7 +124,7 @@ def leave_room(obj, room_id):
 def change_topic(obj, room_id, topic, desc):
     db = obj['db']
     user = obj['user']
-    rooms.change_topic(db, user, room_id, topic, desc)
+    rooms.change_topic(db, user.user_id, room_id, topic, desc)
 
 
 @login.command('remove_topic', help="Remove topic of room")
@@ -131,7 +133,7 @@ def change_topic(obj, room_id, topic, desc):
 def remove_topic(obj, room_id):
     db = obj['db']
     user = obj['user']
-    rooms.remove_topic(db, user, room_id)
+    rooms.remove_topic(db, user.user_id, room_id)
 
 
 @login.command('rate_topic', help="Rate existing topic of the room")
@@ -142,7 +144,7 @@ def remove_topic(obj, room_id):
 def rate_topic(obj, room_id, rate):
     db = obj['db']
     user = obj['user']
-    rooms.rate_topic(db, user, room_id, rate)
+    rooms.rate_topic(db, user.user_id, room_id, rate)
 
 
 @run_application.command('register', help="Register new user")

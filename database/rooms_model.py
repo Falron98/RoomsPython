@@ -1,6 +1,7 @@
 class Room:
-    def __init__(self, id, owner, password):
+    def __init__(self, id, name, owner, password):
         self.id = id
+        self.name = name
         self.owner = owner
         self.password = password
 
