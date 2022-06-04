@@ -68,13 +68,13 @@ class ShowVotes(HTTPEndpoint):
         votes = []
         for user in room_rating:
             votes.append({"username": user[0], "value": user[1]})
-        return JSONResponse(content={"users": votes},
+        return JSONResponse(content={"votes": votes},
                             status_code=200)
 
 
 class VoteTopic(HTTPEndpoint):
     @requires("authenticated")
-    async def put(self, request: Request):
+    async def post(self, request: Request):
         data = await request.json()
         vote = data["vote"]
         room_id = request.path_params['id']
