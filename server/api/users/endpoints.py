@@ -54,7 +54,7 @@ class Login(HTTPEndpoint):
         else:
             payload = {"sub": user_data.user_id,
                        "username": user_data.login,
-                       "exp": datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(seconds=3000)}
+                       "exp": datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(minutes=15)}
             token = jwt.encode(payload=payload,
                                key=key, algorithm='HS256')
             return JSONResponse({'token': token}, status_code=200)
