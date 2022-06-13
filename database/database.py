@@ -1,25 +1,29 @@
-import sqlite3
+import sqlalchemy as database
+from sqlalchemy import MetaData
+import contextlib
 
+def clear_db(db):
+    meta = MetaData()
 
-def initialize_db(db: sqlite3.Connection):
+    with contextlib.closing(db.connect()) as con:
+        trans = con.begin()
+        for table in reversed(meta.sorted_tables):
+            con.execute(table.delete())
+        trans.commit()
+
+def initialize_db(db):
     db.isolation_level = None
-    for call in ["PRAGMA writable_schema = 1;",
-                 "DELETE FROM sqlite_master;",
-                 "PRAGMA writable_schema = 0;",
-                 "VACUUM;",
-                 "PRAGMA integrity_check;"]:
-        db.execute(call)
+    clear_db(db)
 
     db.isolation_level = ''
-    cur = db.cursor()
-    cur.execute('''
+    db.execute('''
                     CREATE TABLE users (
                         user_id integer PRIMARY KEY,
                         login text NOT NULL UNIQUE,
                         password text NOT NULL
                     )
                 ''')
-    cur.execute('''
+    db.execute('''
                     CREATE TABLE rooms (
                         room_id integer PRIMARY KEY,
                         name text NOT NULL,
@@ -29,7 +33,7 @@ def initialize_db(db: sqlite3.Connection):
                         FOREIGN KEY (owner_id) REFERENCES users (user_id) ON DELETE CASCADE
                     )
                 ''')
-    cur.execute('''
+    db.execute('''
                     CREATE TABLE topics (
                         topic_id integer PRIMARY KEY,
                         room_id integer NOT NULL UNIQUE,
@@ -38,7 +42,7 @@ def initialize_db(db: sqlite3.Connection):
                         FOREIGN KEY (room_id) REFERENCES rooms(room_id) ON DELETE CASCADE
                     )
                 ''')
-    cur.execute('''
+    db.execute('''
                     CREATE TABLE user_room (
                         user_room_id integer PRIMARY KEY,
                         user_id integer NOT NULL,
@@ -51,8 +55,9 @@ def initialize_db(db: sqlite3.Connection):
                 ''')
 
 
-def get_db(path) -> sqlite3.Connection:
-    db = sqlite3.connect(path)
-    db.execute("PRAGMA foreign_keys = ON")
+def get_db(path):
+    engine = database.create_engine('sqlite:///'+path)
+    connection = engine.connect()
+    connection.execute("PRAGMA foreign_keys = ON")
 
-    return db
+    return engine

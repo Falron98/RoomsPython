@@ -9,6 +9,6 @@ routes = [
     Route('/{id:int}', endpoint=endpoints.UpdateRoom, methods=['PATCH']),
     Route('/{id:int}/join', endpoint=endpoints.JoinRoom, methods=['POST']),
     Route('/{id:int}/vote', endpoint=endpoints.ShowVotes, methods=['GET']),
-    Route('/{id:int}/vote', endpoint=endpoints.VoteTopic, methods=['POST']),
+    Route('/{id:int}/vote', endpoint=endpoints.VoteTopic, methods=['PUT']),
 
 ]

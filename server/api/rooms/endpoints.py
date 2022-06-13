@@ -74,7 +74,7 @@ class ShowVotes(HTTPEndpoint):
 
 class VoteTopic(HTTPEndpoint):
     @requires("authenticated")
-    async def post(self, request: Request):
+    async def put(self, request: Request):
         data = await request.json()
         vote = data["vote"]
         room_id = request.path_params['id']
