@@ -1,4 +1,5 @@
 import re
+from sqlite3 import Cursor
 from typing import List
 
 import bcrypt
@@ -19,17 +20,12 @@ def validate_password(password: str):
     return len(password) > 4
 
 
-def has_user(db, user_login: str):
-    with db.begin():
-        users = db.execute("SELECT * FROM users WHERE login = ?", (user_login,)).fetchall()
-    if len(users) > 0:
-        return True
-    return False
+def has_user(db: Cursor, user_login: str):
+    return len(db.execute("SELECT * FROM users WHERE login = ?", (user_login,)).fetchall()) > 0
 
 
-def login(db, user_login: str, password: str):
-    with db.begin():
-        user = db.execute("SELECT * FROM users WHERE login = ?", (user_login,)).fetchone()
+def login(db: Cursor, user_login: str, password: str):
+    user = db.execute("SELECT * FROM users WHERE login = ?", (user_login,)).fetchone()
     if user is None:
         return None
     if not bcrypt.checkpw(password.encode('utf-8'), user[2].encode('utf-8')):
@@ -37,26 +33,23 @@ def login(db, user_login: str, password: str):
     return User(user_id=user[0], login=user[1])
 
 
-def create_user(db, user_login: str, password: str):
+def create_user(db: Cursor, user_login: str, password: str):
     salt = bcrypt.gensalt()
     password = bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
-    with db.begin():
-        db.execute("INSERT INTO users (login, password) VALUES (?, ?)", (user_login.lower(), password))
+
+    db.execute("INSERT INTO users (login, password) VALUES (?, ?)", (user_login.lower(), password))
 
 
-def get_all_users(db) -> List[User]:
-    with db.begin():
-        return [User(user_id=row[0], login=row[1]) for row in db.execute("SELECT * FROM users").fetchall()]
+def get_all_users(db: Cursor) -> List[User]:
+    return [User(user_id=row[0], login=row[1]) for row in db.execute("SELECT * FROM users ")]
 
 
-def get_user(db, user_id: int):
-    with db.begin():
-        db_user = db.execute("SELECT * FROM users WHERE user_id = ?", (user_id,)).fetchone()
+def get_user(db: Cursor, user_id: int):
+    db_user = db.execute("SELECT * FROM users WHERE user_id = ?", (user_id,)).fetchone()
     if db_user is None:
         return None
     return User(user_id=db_user[0], login=db_user[1])
 
 
-def remove_user(db, user_login):
-    with db.begin():
-        db.execute("DELETE FROM users WHERE login = ?", (user_login, ))
+def remove_user(db: Cursor, user_login):
+    db.execute("DELETE FROM users WHERE login = ?", (user_login, ))

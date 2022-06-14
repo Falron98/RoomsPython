@@ -78,8 +78,7 @@ def list_users(obj, filter=None):
 def list_rooms(obj, filter=None):
     db = obj['db']
     rooms_list = rooms.list_rooms(db, filter)
-    print(rooms_list)
-    df = pd.DataFrame(rooms_list, columns=['ID', 'Name', 'Topic', 'Description', 'Users in room', 'Owner'])
+    df = pd.DataFrame(rooms_list, columns=['ID', 'Topic', 'Description', 'Users in room', 'Owner'])
     print(df)
 
 
@@ -91,7 +90,7 @@ def show_room(obj, room_id):
     user = obj['user']
     rooms_list = rooms.show_room(db, user.user_id, room_id)
     if rooms_list is not None:
-        df = pd.DataFrame(rooms_list, columns=['ID', 'Name', 'Topic', 'Description', 'Users in room', 'Owner'])
+        df = pd.DataFrame(rooms_list, columns=['ID', 'Topic', 'Description', 'Users in room', 'Owner'])
         print(df)
         users_ratings = rooms.rating_of_room(db, room_id)
         df = pd.DataFrame(users_ratings, columns=['User', 'Rating of Topic'])
