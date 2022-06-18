@@ -3,10 +3,8 @@ from starlette.endpoints import HTTPEndpoint
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
-from commands import db
 from commands import rooms
-
-db = db.get_database()
+from database.database import get_database
 
 
 class ListRooms(HTTPEndpoint):
@@ -14,7 +12,9 @@ class ListRooms(HTTPEndpoint):
     async def get(self, request: Request):
         logged_user = request.user.username
         rooms_list = []
-        my_rooms = rooms.list_rooms(db, logged_user)
+        async with get_database() as session:
+            async with session.begin():
+                my_rooms = await rooms.list_rooms(session, logged_user)
         for one_room in my_rooms:
             rooms_list.append({"name": one_room[1], "id": one_room[0], "owner": one_room[5]})
         return JSONResponse(content=rooms_list, status_code=200)
@@ -26,7 +26,9 @@ class CreateRoom(HTTPEndpoint):
         data = await request.json()
         name = data["name"]
         password = data['password']
-        rooms.create_room(db, request.user.sub, name, password)
+        async with get_database() as session:
+            async with session.begin():
+                await rooms.create_room(session, request.user.sub, name, password)
         return JSONResponse({}, status_code=200)
 
 
@@ -36,8 +38,13 @@ class JoinRoom(HTTPEndpoint):
         data = await request.json()
         room_id = request.path_params['id']
         password = data['password']
-        rooms.join_room(db, request.user.sub, room_id, password)
-        return JSONResponse({}, status_code=200)
+        async with get_database() as session:
+            async with session.begin():
+                joined = await rooms.join_room(session, request.user.sub, room_id, password)
+        if joined == 'err_1':
+            return JSONResponse({"err": "Wrong room/password or you are already in this room"}, status_code=400)
+        else:
+            return JSONResponse({}, status_code=200)
 
 
 class UpdateRoom(HTTPEndpoint):
@@ -48,11 +55,17 @@ class UpdateRoom(HTTPEndpoint):
         room_id = request.path_params['id']
         if 'topic' in data:
             topic = data['topic']
-            rooms.change_topic(db, request.user.sub, room_id, topic, None)
+            async with get_database() as session:
+                async with session.begin():
+                    await rooms.change_topic(session, request.user.sub, room_id, topic, None)
         if 'password' in data:
             password = data['password']
-            rooms.change_pass(db, request.user.sub, room_id, password)
-        room = rooms.show_room(db, user_id, room_id)
+            async with get_database() as session:
+                async with session.begin():
+                    await rooms.change_pass(session, request.user.sub, room_id, password)
+        async with get_database() as session:
+            async with session.begin():
+                room = await rooms.show_room(session, user_id, room_id)
         users_dict = []
         for user in room[0][4]:
             users_dict.append({"username": user})
@@ -64,7 +77,9 @@ class ShowVotes(HTTPEndpoint):
     @requires("authenticated")
     async def get(self, request: Request):
         room_id = request.path_params['id']
-        room_rating = rooms.rating_of_room(db, room_id)
+        async with get_database() as session:
+            async with session.begin():
+                room_rating = await rooms.rating_of_room(session, room_id)
         votes = []
         for user in room_rating:
             votes.append({"username": user[0], "value": user[1]})
@@ -79,7 +94,9 @@ class VoteTopic(HTTPEndpoint):
         vote = data["vote"]
         room_id = request.path_params['id']
         user_id = request.user.sub
-        rooms.rate_topic(db, user_id, room_id, vote)
+        async with get_database() as session:
+            async with session.begin():
+                await rooms.rate_topic(session, user_id, room_id, vote)
         return JSONResponse(content={},
                             status_code=200)
 
@@ -89,7 +106,9 @@ class ShowRoom(HTTPEndpoint):
     async def get(self, request: Request):
         room_id = request.path_params['id']
         user_id = request.user.sub
-        room = rooms.show_room(db, user_id, room_id)
+        async with get_database() as session:
+            async with session.begin():
+                room = await rooms.show_room(session, user_id, room_id)
         users_dict = []
         for user in room[0][4]:
             users_dict.append({"username": user})

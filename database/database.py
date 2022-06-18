@@ -1,58 +1,37 @@
-import sqlite3
+from contextlib import asynccontextmanager
+
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import declarative_base, sessionmaker
+
+from commands.db import db_path
+
+Base = declarative_base()
+global engine
+
+engine = create_async_engine(
+    "sqlite+aiosqlite:////{}".format(db_path[3:]),
+    connect_args={"check_same_thread": False},
+    echo=True,
+    future=True
+)
 
 
-def initialize_db(db: sqlite3.Connection):
-    db.isolation_level = None
-    for call in ["PRAGMA writable_schema = 1;",
-                 "DELETE FROM sqlite_master;",
-                 "PRAGMA writable_schema = 0;",
-                 "VACUUM;",
-                 "PRAGMA integrity_check;"]:
-        db.execute(call)
+@asynccontextmanager
+async def get_database() -> AsyncSession:
+    global engine
 
-    db.isolation_level = ''
-    cur = db.cursor()
-    cur.execute('''
-                    CREATE TABLE users (
-                        user_id integer PRIMARY KEY,
-                        login text NOT NULL UNIQUE,
-                        password text NOT NULL
-                    )
-                ''')
-    cur.execute('''
-                    CREATE TABLE rooms (
-                        room_id integer PRIMARY KEY,
-                        name text NOT NULL,
-                        password text NOT NULL,
-                        owner_id integer NOT NULL,
-                        topic_id integer,
-                        FOREIGN KEY (owner_id) REFERENCES users (user_id) ON DELETE CASCADE
-                    )
-                ''')
-    cur.execute('''
-                    CREATE TABLE topics (
-                        topic_id integer PRIMARY KEY,
-                        room_id integer NOT NULL UNIQUE,
-                        topic text,
-                        topic_dsc text,
-                        FOREIGN KEY (room_id) REFERENCES rooms(room_id) ON DELETE CASCADE
-                    )
-                ''')
-    cur.execute('''
-                    CREATE TABLE user_room (
-                        user_room_id integer PRIMARY KEY,
-                        user_id integer NOT NULL,
-                        room_id integer NOT NULL,
-                        topic_rating real,
-                        FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE,
-                        FOREIGN KEY (room_id) REFERENCES rooms (room_id) ON DELETE CASCADE,
-                        UNIQUE(room_id, user_id)
-                    )
-                ''')
+    if engine is None:
+        engine = create_async_engine(
+            "sqlite+aiosqlite:////{}".format(db_path[3:]),
+            connect_args={"check_same_thread": False},
+            echo=True,
+            future=True
+        )
+    # async with engine.begin() as conn:
+    #     await conn.run_sync(Base.metadata.drop_all)
+    #     await conn.run_sync(Base.metadata.create_all)
 
-
-def get_db(path) -> sqlite3.Connection:
-    db = sqlite3.connect(path)
-    db.execute("PRAGMA foreign_keys = ON")
-
-    return db
+    async with sessionmaker(
+            engine, expire_on_commit=False, class_=AsyncSession
+    )() as session:
+        yield session

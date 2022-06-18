@@ -1,9 +1,11 @@
 import re
-from sqlite3 import Cursor
 from typing import List
 
 import bcrypt
+from sqlalchemy import select, insert
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from database.Alchemymodels import UserDB
 from database.users_model import User
 
 LOGIN_RE = r'^[a-zA-Z0-9]+$'
@@ -20,36 +22,41 @@ def validate_password(password: str):
     return len(password) > 4
 
 
-def has_user(db: Cursor, user_login: str):
-    return len(db.execute("SELECT * FROM users WHERE login = ?", (user_login,)).fetchall()) > 0
+async def has_user(db: AsyncSession, user_login: str):
+    user = await db.execute(select(UserDB).where(UserDB.login == user_login))
+    return len(user.scalars().all()) > 0
 
 
-def login(db: Cursor, user_login: str, password: str):
-    user = db.execute("SELECT * FROM users WHERE login = ?", (user_login,)).fetchone()
+async def login(db: AsyncSession, user_login: str, password: str):
+    user = await db.execute(select(UserDB).where(UserDB.login == user_login))
+    user = user.scalars().first()
     if user is None:
         return None
-    if not bcrypt.checkpw(password.encode('utf-8'), user[2].encode('utf-8')):
+    if not bcrypt.checkpw(password.encode('utf-8'), user.password.encode('utf-8')):
         return None
-    return User(user_id=user[0], login=user[1])
+    return User(user_id=user.user_id, login=user.login)
 
 
-def create_user(db: Cursor, user_login: str, password: str):
+async def create_user(db: AsyncSession, user_login: str, password: str):
     salt = bcrypt.gensalt()
     password = bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
 
-    db.execute("INSERT INTO users (login, password) VALUES (?, ?)", (user_login.lower(), password))
+    await db.execute(insert(UserDB).values(login=user_login, password=password))
 
 
-def get_all_users(db: Cursor) -> List[User]:
-    return [User(user_id=row[0], login=row[1]) for row in db.execute("SELECT * FROM users ")]
+async def get_all_users(db: AsyncSession) -> List[User]:
+    users = await db.execute(select(UserDB))
+    users = users.scalars().all()
+    return [User(user_id=row.user_id, login=row.login) for row in users]
 
 
-def get_user(db: Cursor, user_id: int):
-    db_user = db.execute("SELECT * FROM users WHERE user_id = ?", (user_id,)).fetchone()
+async def get_user(db: AsyncSession, user_id: int):
+    db_user = await db.execute(select(UserDB).where(UserDB.user_id == user_id))
+    db_user = db_user.scalars().first()
     if db_user is None:
         return None
-    return User(user_id=db_user[0], login=db_user[1])
+    return User(user_id=db_user.user_id, login=db_user.login)
 
 
-def remove_user(db: Cursor, user_login):
-    db.execute("DELETE FROM users WHERE login = ?", (user_login, ))
+async def remove_user(db: AsyncSession, user_login):
+    await db.execute("DELETE FROM users WHERE login = ?", (user_login, ))

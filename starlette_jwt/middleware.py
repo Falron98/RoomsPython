@@ -1,8 +1,21 @@
+import datetime
+
 import jwt
 from starlette.authentication import (
     AuthenticationBackend, AuthenticationError, BaseUser, AuthCredentials,
     UnauthenticatedUser)
 from typing import Optional, Tuple, Union
+
+key = 'secret'
+
+
+def createToken(id, login):
+    payload = {"sub": id,
+               "username": login,
+               "exp": datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(minutes=15)}
+    token = jwt.encode(payload=payload,
+                       key=key, algorithm='HS256')
+    return token
 
 
 class JWTUser(BaseUser):
@@ -62,7 +75,8 @@ class JWTAuthenticationBackend(AuthenticationBackend):
         except jwt.InvalidTokenError as e:
             raise AuthenticationError(str(e))
 
-        return AuthCredentials(["authenticated"]), JWTUser(sub=payload[self.sub], username=payload[self.username_field], token=token,
+        return AuthCredentials(["authenticated"]), JWTUser(sub=payload[self.sub], username=payload[self.username_field],
+                                                           token=token,
                                                            payload=payload)
 
 
@@ -96,5 +110,6 @@ class JWTWebSocketAuthenticationBackend(AuthenticationBackend):
         except jwt.InvalidTokenError as e:
             raise AuthenticationError(str(e))
 
-        return AuthCredentials(["authenticated"]), JWTUser(sub=payload[self.sub], username=payload[self.username_field], token=token,
+        return AuthCredentials(["authenticated"]), JWTUser(sub=payload[self.sub], username=payload[self.username_field],
+                                                           token=token,
                                                            payload=payload)
